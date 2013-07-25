@@ -1,6 +1,7 @@
 #include <Pane.hpp>
 #include <iostream>
 #include <cstring>
+#include <X11/Xatom.h>
 
 Pane::Pane( )
 {
@@ -66,18 +67,15 @@ int Pane::Initialise( )
 	WindowAttributes.colormap = XCreateColormap( m_pDisplay,
 		RootWindow( m_pDisplay, m_pVisualInfo->screen ), m_pVisualInfo->visual,
 		AllocNone );
-	WindowAttributes.override_redirect = True;
-	WindowAttributes.background_pixmap = None;
 	WindowAttributes.border_pixel = 0;
 	WindowAttributes.event_mask = StructureNotifyMask | ExposureMask |
 		KeyPressMask | KeyReleaseMask | PointerMotionMask | FocusChangeMask |
-		ResizeRedirectMask | EnterWindowMask | LeaveWindowMask |
-		ButtonPressMask | ButtonReleaseMask;
+		EnterWindowMask | LeaveWindowMask| ButtonPressMask | ButtonReleaseMask;
 	
 	m_Window = XCreateWindow( m_pDisplay,
 		RootWindow( m_pDisplay, m_pVisualInfo->screen ), 0, 0, 640, 480, 0,
 		m_pVisualInfo->depth, InputOutput, m_pVisualInfo->visual,
-		CWEventMask | CWColormap | CWBorderPixel | CWOverrideRedirect,
+		CWEventMask | CWColormap | CWBorderPixel,
 		&WindowAttributes );
 	
 	XMapWindow( m_pDisplay, m_Window );
@@ -107,11 +105,14 @@ int Pane::Initialise( )
 		return 0;
 	}
 
+	XTextProperty Text;
+	char *List[ 1 ] = { "MULE - Client\0" };
+
+	XmbTextListToTextProperty( m_pDisplay, List, 1, XStringStyle, &Text );
+
+	XSetWMName( m_pDisplay, m_Window, &Text );
+
 	glClearColor( 0.20f, 0.0f, 0.0f, 1.0f );
-	glClear( GL_COLOR_BUFFER_BIT );
-
-	glXSwapBuffers( m_pDisplay, m_Window );
-
 
 	return 1;
 }
@@ -146,9 +147,66 @@ void Pane::Destroy( )
 
 void Pane::Update( )
 {
+	static Atom DeleteWindow;
+	DeleteWindow = XInternAtom( m_pDisplay, "WM_DELETE_WINDOW", False );
+	XSetWMProtocols( m_pDisplay, m_Window, &DeleteWindow, 1 );
+	glXSwapBuffers( m_pDisplay, m_Window );
+	bool quit = false;
+
+	XEvent Event;
+
+	while( !quit )
+	{
+		int Pending = XPending( m_pDisplay );
+		for( int i = 0; i < Pending; ++i )
+		{
+			XNextEvent( m_pDisplay, &Event );
+
+			switch( Event.type )
+			{
+				case Expose:
+				{
+					if( Event.xexpose.count != 0 )
+					{
+						break;
+					}
+
+					this->Render( );
+
+					break;
+				}
+				case ConfigureNotify:
+				{
+					glViewport( 0, 0, Event.xconfigure.width,
+						Event.xconfigure.height );
+
+					break;
+				}
+				case ClientMessage:
+				{
+					if( ( Atom )Event.xclient.data.l[ 0 ] == DeleteWindow )
+					{
+						quit = true;
+						break;
+					}
+				}
+				default:
+				{
+					break;
+				}
+			}
+		}
+
+		this->Render( );
+	}
 }
 
 void Pane::Render( )
 {
+	glClear( GL_COLOR_BUFFER_BIT );
+
+	// Render all attached views
+
+	glXSwapBuffers( m_pDisplay, m_Window );
 }
 

@@ -7,7 +7,7 @@ int main( int p_Argc, char **p_ppArgv )
 	Pane MainPane;
 
 	MainPane.Initialise( );
-	sleep( 3 );
+	MainPane.Update( );
 	
 	return 0;
 }
