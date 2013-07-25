@@ -112,6 +112,25 @@ int Pane::Initialise( )
 
 	XSetWMName( m_pDisplay, m_Window, &Text );
 
+	XEvent Event;
+	Atom State = XInternAtom( m_pDisplay, "_NET_WM_STATE", False );
+	Atom MaxHorz = XInternAtom( m_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ",
+		False );
+	Atom MaxVert = XInternAtom( m_pDisplay, "_NET_WM_STATE_MAXIMIZED_VERT",
+		False );
+	
+	memset( &Event, 0, sizeof( Event ) );
+	Event.type = ClientMessage;
+	Event.xclient.window = m_Window;
+	Event.xclient.message_type = State;
+	Event.xclient.format = 32;
+	Event.xclient.data.l[ 0 ] = 1; //_NET_WM_STATE_ADD;
+	Event.xclient.data.l[ 1 ] = MaxHorz;
+	Event.xclient.data.l[ 2 ] = MaxVert;
+
+	XSendEvent( m_pDisplay, DefaultRootWindow( m_pDisplay ), False,
+		SubstructureNotifyMask, &Event );
+
 	glClearColor( 0.20f, 0.0f, 0.0f, 1.0f );
 
 	return 1;
