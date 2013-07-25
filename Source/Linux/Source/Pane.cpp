@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstring>
 #include <X11/Xatom.h>
+#include <GitVersion.hpp>
 
 Pane::Pane( )
 {
@@ -106,9 +107,21 @@ int Pane::Initialise( )
 	}
 
 	XTextProperty Text;
-	char *List[ 1 ] = { "MULE - Client\0" };
+	char *pList = new char[ 1024 ];
+	memset( pList, '\0', 1024*sizeof( char ) );
+	strcat( pList, "MULE | Client" );
+#if defined MULE_BUILD_DEBUG
+	strcat( pList, " [DEBUG] " );
+#elif defined MULE_BUILD_PROFILE
+	strcat( pList, " [PROFILE] " );
+#endif
 
-	XmbTextListToTextProperty( m_pDisplay, List, 1, XStringStyle, &Text );
+#if defined MULE_BUILD_DEBUG || MULE_BUILD_PROFILE
+	strcat( pList, GIT_COMMITHASH );
+#endif
+
+	XmbTextListToTextProperty( m_pDisplay, &pList, 1, XStringStyle, &Text );
+	delete [ ] pList;
 
 	XSetWMName( m_pDisplay, m_Window, &Text );
 
