@@ -1,5 +1,6 @@
 #include <Pane.hpp>
 #include <iostream>
+#include <cstring>
 
 Pane::Pane( )
 {
@@ -86,6 +87,25 @@ int Pane::Initialise( )
 
 	m_GLXContext = glXCreateContext( m_pDisplay, m_pVisualInfo, 0, True );
 	glXMakeCurrent( m_pDisplay, m_Window, m_GLXContext );
+
+	char *pGLVersion = ( char * )glGetString( GL_VERSION );
+	char *pTokenVersion = strtok( pGLVersion, ". " );
+
+	for( int i = 0; i < 2; ++i )
+	{
+		m_GLVersion[ i ] = atoi( pTokenVersion );
+		pTokenVersion = strtok( NULL, ". " );
+	}
+
+	std::cout << "OpenGL version: " << m_GLVersion[ 0 ] << "." <<
+		m_GLVersion[ 1 ] << std::endl;
+
+	if( ( m_GLVersion[ 0 ] < 1 ) ||
+		( ( m_GLVersion[ 0 ] == 1 ) && ( m_GLVersion[ 1 ] < 1 ) ) )
+	{
+		std::cout << "Failed to create an OpenGL 1.1 context" << std::endl;
+		return 0;
+	}
 
 	glClearColor( 0.20f, 0.0f, 0.0f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
