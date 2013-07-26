@@ -7,6 +7,7 @@
 Pane::Pane( )
 {
 	m_pDisplay = NULL;
+	m_Window = 0;
 	m_pVisualInfo = NULL;
 	m_GLVersion[ 0 ] = 0;
 	m_GLVersion[ 1 ] = 0;
@@ -122,6 +123,7 @@ int Pane::Initialise( )
 
 	XmbTextListToTextProperty( m_pDisplay, &pList, 1, XStringStyle, &Text );
 	delete [ ] pList;
+	pList = NULL;
 
 	XSetWMName( m_pDisplay, m_Window, &Text );
 

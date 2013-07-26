@@ -1,14 +1,16 @@
 #include <iostream>
-#include <Pane.hpp>
-#include <unistd.h>
+#include <Application.hpp>
 
 int main( int p_Argc, char **p_ppArgv )
 {
-	Pane MainPane;
+	Application Client;
 
-	MainPane.Initialise( );
-	MainPane.Update( );
-	
-	return 0;
+	if( Client.Initialise( ) == 0 )
+	{
+		std::cout << "Failed to initialise the client" << std::endl;
+		return 0;
+	}
+
+	return Client.Execute( );
 }
 
