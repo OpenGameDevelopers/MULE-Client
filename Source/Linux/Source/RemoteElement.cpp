@@ -19,3 +19,7 @@ int RemoteElement::Initialise( )
 	return 1;
 }
 
+void RemoteElement::Destroy( )
+{
+}
+

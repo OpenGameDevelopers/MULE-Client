@@ -30,6 +30,7 @@ public:
 		{ return m_Dimension; }
 	
 	virtual int Initialise( ) = 0;
+	virtual void Destroy( ) = 0;
 
 protected:
 	Point		m_Point;

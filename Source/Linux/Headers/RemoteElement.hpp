@@ -11,6 +11,7 @@ public:
 	virtual ~RemoteElement( );
 
 	virtual int Initialise( );
+	virtual void Destroy( );
 
 private:
 	GLuint	m_TextureID;
