@@ -11,7 +11,7 @@ extern "C"
 {
 #endif
 
-extern PFNGLBINDTEXTURE			__glBindTexture;
+extern PFNGLBINDTEXTUREEXTPROC			__glBindTexture;
 
 #define glBindTexture	__glBindTexture
 

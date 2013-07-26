@@ -13,7 +13,7 @@ public:
 	virtual int Initialise( );
 
 private:
-	GLint	m_TextureID;
+	GLuint	m_TextureID;
 };
 
 #endif

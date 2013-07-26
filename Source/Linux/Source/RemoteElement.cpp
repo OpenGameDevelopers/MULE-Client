@@ -14,7 +14,7 @@ RemoteElement::~RemoteElement( )
 
 int RemoteElement::Initialise( )
 {
-	glGenTextures( 1, m_TextureID );
+	glGenTextures( 1, &m_TextureID );
 
 	return 1;
 }
