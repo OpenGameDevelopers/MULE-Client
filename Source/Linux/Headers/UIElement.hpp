@@ -18,11 +18,22 @@ class UIElement
 public:
 	virtual ~UIElement( ) { }
 
-	virtual void Position( const Point &p_Point ) = 0;
-	virtual Point Position( ) const = 0;
+	virtual void Position( const Point &p_Point )
+		{ m_Point.X = p_Point.X; m_Point.Y = p_Point.Y; }
+	virtual Point Position( ) const
+		{ return m_Point; }
 
-	virtual void Dimensions( const Dimension &p_Dimension ) = 0;
-	virtual Deimension Dimensions( ) const = 0;
+	virtual void Dimensions( const Dimension &p_Dimension )
+		{ m_Dimension.Width = p_Dimension.Width;
+		m_Dimension.Height = p_Dimension.Height; }
+	virtual Dimension Dimensions( ) const
+		{ return m_Dimension; }
+	
+	virtual int Initialise( ) = 0;
+
+protected:
+	Point		m_Point;
+	Dimension	m_Dimension;
 };
 
 #endif
