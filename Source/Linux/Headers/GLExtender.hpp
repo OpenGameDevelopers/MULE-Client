@@ -12,12 +12,26 @@ extern "C"
 #endif
 
 extern PFNGLBINDTEXTUREEXTPROC			__glBindTexture;
+extern PFNGLBINDFRAMEBUFFERPROC			__glBindFrameBuffer;
+extern PFNGLGENFRAMEBUFFERSEXTPROC		__glGenFrameBuffers;
+extern PFNGLGENRENDERBUFFERSEXTPROC		__glGenRenderBuffers;
+extern PFNGLDELETEFRAMEBUFFERSPROC		__glDeleteFrameBuffers;
+extern PFNGLDELETERENDERBUFFERSPROC		__glDeleteRenderBuffers;
 
-#define glBindTexture	__glBindTexture
+#define glBindTexture		__glBindTexture
+#define glBindFrameBuffer	__glBindFrameBuffer
+
+#define glGenFrameBuffers	__glGenFrameBuffers
+#define glGenRenderBuffers	__glGenRenderBuffers
+
+#define glDeleteFrameBuffers	__glDeleteFrameBuffers
+#define glDeleteRenderBuffers	__glDeleteRenderBuffers
 
 #ifdef __cplusplus
 }
 #endif
+
+bool InitGLExtensions( );
 
 #endif
 

@@ -4,17 +4,21 @@
 #include <UIElement.hpp>
 #include <GLExtender.hpp>
 
-class RemoteElement : public UIElement
+class RemoteDisplayElement : public UIElement
 {
 public:
-	explicit RemoteElement( const int p_Width, const int p_Height );
-	virtual ~RemoteElement( );
+	explicit RemoteDisplayElement( const int p_Width, const int p_Height );
+	virtual ~RemoteDisplayElement( );
 
 	virtual int Initialise( );
 	virtual void Destroy( );
 
+	void Render( );
+
 private:
 	GLuint	m_TextureID;
+	GLuint	m_FBO;
+	GLuint	m_RBO;
 };
 
 #endif

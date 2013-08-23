@@ -7,6 +7,8 @@
 #include <GL/glxext.h>
 #include <GL/glext.h>
 
+class RemoteDisplayElement;
+
 class Pane
 {
 public:
@@ -27,6 +29,11 @@ private:
 	GLXContext	m_GLXContext;
 	XVisualInfo	*m_pVisualInfo;
 	GLint		m_GLVersion[ 2 ];
+
+	// Temporarily use the raw RDE instead of determining them via their
+	// UIElement
+	RemoteDisplayElement	*m_pElements;
+	int						m_ElementCount;
 
 	int		m_Width;
 	int		m_Height;

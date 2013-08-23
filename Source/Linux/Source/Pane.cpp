@@ -3,6 +3,7 @@
 #include <cstring>
 #include <X11/Xatom.h>
 #include <GitVersion.hpp>
+#include <RemoteElement.hpp>
 
 Pane::Pane( )
 {
@@ -146,7 +147,16 @@ int Pane::Initialise( )
 	XSendEvent( m_pDisplay, DefaultRootWindow( m_pDisplay ), False,
 		SubstructureNotifyMask, &Event );
 
-	glClearColor( 0.20f, 0.0f, 0.0f, 1.0f );
+	if( InitGLExtensions( ) )
+	{
+		std::cout << "Failed to initialise GL extensions" << std::endl;
+		return 0;
+	}
+
+	glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );
+
+	m_pElements = new RemoteDisplayElement( 256, 256 );
+	m_pElements->Initialise( );
 
 	return 1;
 }
