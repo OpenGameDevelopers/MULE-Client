@@ -1,4 +1,4 @@
-#include <RemoteElement.hpp>
+#include <RemoteDisplayElement.hpp>
 
 RemoteDisplayElement::RemoteDisplayElement( const int p_Width, const int p_Height )
 {

@@ -3,7 +3,7 @@
 #include <cstring>
 #include <X11/Xatom.h>
 #include <GitVersion.hpp>
-#include <RemoteElement.hpp>
+#include <RemoteDisplayElement.hpp>
 
 Pane::Pane( )
 {
@@ -163,6 +163,12 @@ int Pane::Initialise( )
 
 void Pane::Destroy( )
 {
+	if( m_pElements )
+	{
+		delete [ ] m_pElements;
+		m_pElements = NULL;
+	}
+
 	if( m_pDisplay )
 	{
 		glXMakeCurrent( m_pDisplay, 0, 0 );
