@@ -16,6 +16,8 @@ Pane::Pane( )
 	m_FBConfig = 0;
 	m_Width = 0;
 	m_Height = 0;
+	m_pElements = NULL;
+	m_ElementCount = 0;
 }
 
 Pane::~Pane( )
@@ -76,7 +78,7 @@ int Pane::Initialise( )
 		EnterWindowMask | LeaveWindowMask| ButtonPressMask | ButtonReleaseMask;
 	
 	m_Window = XCreateWindow( m_pDisplay,
-		RootWindow( m_pDisplay, m_pVisualInfo->screen ), 0, 0, 640, 480, 0,
+		RootWindow( m_pDisplay, m_pVisualInfo->screen ), 0, 0, 800, 600, 0,
 		m_pVisualInfo->depth, InputOutput, m_pVisualInfo->visual,
 		CWEventMask | CWColormap | CWBorderPixel,
 		&WindowAttributes );
@@ -127,7 +129,7 @@ int Pane::Initialise( )
 	pList = NULL;
 
 	XSetWMName( m_pDisplay, m_Window, &Text );
-
+/*
 	XEvent Event;
 	Atom State = XInternAtom( m_pDisplay, "_NET_WM_STATE", False );
 	Atom MaxHorz = XInternAtom( m_pDisplay, "_NET_WM_STATE_MAXIMIZED_HORZ",
@@ -145,7 +147,7 @@ int Pane::Initialise( )
 	Event.xclient.data.l[ 2 ] = MaxVert;
 
 	XSendEvent( m_pDisplay, DefaultRootWindow( m_pDisplay ), False,
-		SubstructureNotifyMask, &Event );
+		SubstructureNotifyMask, &Event );*/
 
 	if( InitGLExtensions( ) )
 	{
@@ -155,8 +157,9 @@ int Pane::Initialise( )
 
 	glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );
 
-	m_pElements = new RemoteDisplayElement( 256, 256 );
-	m_pElements->Initialise( );
+	m_pElements = new RemoteDisplayElement[ 1 ];
+	m_pElements[ 0 ].Dimensions( 800, 600 );
+	m_pElements[ 0 ].Initialise( );
 
 	return 1;
 }
@@ -256,6 +259,7 @@ void Pane::Render( )
 	glClear( GL_COLOR_BUFFER_BIT );
 
 	// Render all attached views
+	m_pElements[ 0 ].Render( );
 
 	glXSwapBuffers( m_pDisplay, m_Window );
 }

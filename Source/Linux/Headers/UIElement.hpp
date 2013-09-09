@@ -32,6 +32,8 @@ public:
 	virtual int Initialise( ) = 0;
 	virtual void Destroy( ) = 0;
 
+	virtual int Type( ) const = 0;
+
 protected:
 	Point		m_Point;
 	Dimension	m_Dimension;
