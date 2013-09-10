@@ -18,6 +18,12 @@ const GLenum	STREAM_FORMAT		= GL_BGRA;
 const int		STREAM_SIZE			= STREAM_WIDTH * STREAM_HEIGHT *
 									STREAM_COLOURCOUNT;
 
+typedef struct __tagImagePacket
+{
+	int		Offset;
+	char	Data[ 1020 ];
+}ImagePacket;
+
 RemoteDisplayElement::RemoteDisplayElement( )
 {
 	m_TextureID = 0;
@@ -396,7 +402,8 @@ void RemoteDisplayElement::Render( )
 
 //	printf( "Getting frame data...\n" );
 
-	if( ( NumBytes = recvfrom( m_Socket, Buffer, MAX_BUFFER_LENGTH, 0,
+	ImagePacket TmpPkt;
+	if( ( NumBytes = recvfrom( m_Socket, &TmpPkt, MAX_BUFFER_LENGTH, 0,
 		( struct sockaddr * )&RemoteAddress, &AddressLength ) ) == -1 )
 	{
 		printf( "Error receiving from socket\n" );
@@ -404,7 +411,14 @@ void RemoteDisplayElement::Render( )
 	}
 	else
 	{
-		printf( "Packet [%d bytes]: %s\n", NumBytes, Buffer );
+		//printf( "Packet [%d bytes]: %s\n", NumBytes, Buffer );
+		//printf( "Pos: %d\n", ntohl( TmpPkt.Offset ) );
+		printf( "Data:\n" );
+		for( int i = 0; i < NumBytes-4; ++i )
+		{
+			printf( "%02X  ", TmpPkt.Data[ i ] );
+		}
+		printf( "\n" );
 
 		static unsigned int Colour = 0xFF00000FF;
 		glBindTexture( GL_TEXTURE_2D, m_TextureID );
