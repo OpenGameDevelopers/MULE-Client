@@ -156,6 +156,7 @@ int Pane::Initialise( )
 	}
 
 	glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );
+	glEnable( GL_TEXTURE_2D );
 
 	m_pElements = new RemoteDisplayElement[ 1 ];
 	m_pElements[ 0 ].Dimensions( 800, 600 );

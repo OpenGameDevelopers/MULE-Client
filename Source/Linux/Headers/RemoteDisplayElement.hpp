@@ -3,6 +3,11 @@
 
 #include <UIElement.hpp>
 #include <GLExtender.hpp>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <errno.h>
 
 class RemoteDisplayElement : public UIElement
 {
@@ -25,7 +30,14 @@ private:
 	GLuint	m_PBO;
 	GLubyte	*m_pImageData;
 
-	int		m_Socket;
+	int						m_Socket;
+	int						m_ServerSocket;
+	struct sockaddr_storage	m_SocketAddress;
+	struct sockaddr_storage m_ServerAddress;
+	socklen_t				m_SocketLength;
+	socklen_t				m_ServerLength;
+	struct addrinfo			*pAddrItr;
+	struct addrinfo			*pServerInfo;
 };
 
 void RemoteDisplayElement::Dimensions( const int p_Width, const int p_Height )
