@@ -13,10 +13,11 @@
 const int		MAX_BUFFER_LENGTH	= 1024;
 const int		STREAM_WIDTH		= 800;
 const int		STREAM_HEIGHT		= 600;
-const int		STREAM_COLOURCOUNT	= 4;
-const GLenum	STREAM_FORMAT		= GL_BGRA;
+const int		STREAM_COLOURCOUNT	= 3;
+const GLenum	STREAM_FORMAT		= GL_BGR;
 const int		STREAM_SIZE			= STREAM_WIDTH * STREAM_HEIGHT *
 									STREAM_COLOURCOUNT;
+char g_BufferToSend[ STREAM_WIDTH*STREAM_HEIGHT*STREAM_COLOURCOUNT ];
 
 typedef struct __tagImagePacket
 {
@@ -69,7 +70,7 @@ int RemoteDisplayElement::Initialise( )
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, STREAM_WIDTH, STREAM_HEIGHT, 0,
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, STREAM_WIDTH, STREAM_HEIGHT, 0,
 		STREAM_FORMAT, GL_UNSIGNED_BYTE, ( GLvoid * )m_pImageData );
 	glBindTexture( GL_TEXTURE_2D, 0 );
 
@@ -219,6 +220,16 @@ int RemoteDisplayElement::Initialise( )
 		return 0;
 	}
 		
+	memset( g_BufferToSend, 0xFF,
+		STREAM_WIDTH*STREAM_HEIGHT*STREAM_COLOURCOUNT );
+	for( int r = 0; r < STREAM_HEIGHT; ++r )
+	{
+		for( int i = 0; i < STREAM_WIDTH*STREAM_COLOURCOUNT; ++i )
+		{
+			g_BufferToSend[ i+( r*STREAM_WIDTH*STREAM_COLOURCOUNT ) ] =
+				( r%256 ) & 0xFF;
+		}
+	}
 	return 1;
 }
 
@@ -251,16 +262,17 @@ void RemoteDisplayElement::Destroy( )
 }
 
 // The image here should be updated via an offset into the image's data, really
-void UpdateImage( GLubyte *p_pPixels, int p_Size )
+void UpdateImage( GLubyte *p_pPixels, int p_Size, const int p_Offset,
+	char *p_pData )
 {
     static int Colour = 0;
 
     if( !p_pPixels )
 	{
         return;
-	}
+	}/*
 
-    int *pDataPtr = ( int * )p_pPixels;
+	int *pDataPtr = ( int * )p_pPixels;
 
     for( int i = 0; i < STREAM_HEIGHT; ++i )
     {
@@ -270,7 +282,9 @@ void UpdateImage( GLubyte *p_pPixels, int p_Size )
             ++pDataPtr;
         }
         Colour += 196;
-    }
+    }*/
+
+	memcpy( p_pPixels+p_Offset, p_pData, p_Size );
 
     ++Colour;
 }
@@ -411,14 +425,13 @@ void RemoteDisplayElement::Render( )
 	}
 	else
 	{
-		//printf( "Packet [%d bytes]: %s\n", NumBytes, Buffer );
-		//printf( "Pos: %d\n", ntohl( TmpPkt.Offset ) );
-		printf( "Data:\n" );
+		printf( "Offset: %d\n", ntohl( TmpPkt.Offset ) );
+/*		printf( "Data:\n" );
 		for( int i = 0; i < NumBytes-4; ++i )
 		{
 			printf( "%02X  ", TmpPkt.Data[ i ] );
 		}
-		printf( "\n" );
+		printf( "\n" );*/
 
 		static unsigned int Colour = 0xFF00000FF;
 		glBindTexture( GL_TEXTURE_2D, m_TextureID );
@@ -431,15 +444,15 @@ void RemoteDisplayElement::Render( )
 		GLubyte *pImagePointer = ( GLubyte * )glMapBuffer(
 			GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
 		if( pImagePointer )
-		{
-			UpdateImage( pImagePointer, STREAM_SIZE );
+		{/*
+			UpdateImage( pImagePointer, 1020, ntohl( TmpPkt.Offset ),
+				TmpPkt.Data );*/
+			memcpy( pImagePointer+ntohl( TmpPkt.Offset ), TmpPkt.Data,
+				NumBytes-4 );
+			/*memcpy( pImagePointer, g_BufferToSend, STREAM_WIDTH*STREAM_HEIGHT*
+				STREAM_COLOURCOUNT );*/
 		
-/*		for( int i = 0; i < STREAM_WIDTH*STREAM_HEIGHT; ++i )
-		{
-			*pImagePointer = Colour;
-			++pImagePointer;
-		}*/
-		glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
+			glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
 		}
 
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
@@ -448,13 +461,13 @@ void RemoteDisplayElement::Render( )
 	glPushMatrix();
 
     glBindTexture(GL_TEXTURE_2D, m_TextureID );
-    glColor4f(0, 1, 1, 1);
+    glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
     glBegin(GL_QUADS);
     glNormal3f(0, 0, 1);
-    glTexCoord2f(0.0f, 0.0f);   glVertex3f(-0.5f, -0.5f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f);   glVertex3f( 0.5f, -0.5f, 0.0f);
-    glTexCoord2f(1.0f, 1.0f);   glVertex3f( 0.5f,  0.5f, 0.0f);
-    glTexCoord2f(0.0f, 1.0f);   glVertex3f(-0.5f,  0.5f, 0.0f);
+    glTexCoord2f(0.0f, 0.0f);   glVertex3f(-1.0f, -1.0f, 0.0f);
+    glTexCoord2f(1.0f, 0.0f);   glVertex3f( 1.0f, -1.0f, 0.0f);
+    glTexCoord2f(1.0f, 1.0f);   glVertex3f( 1.0f,  1.0f, 0.0f);
+    glTexCoord2f(0.0f, 1.0f);   glVertex3f(-1.0f,  1.0f, 0.0f);
     glEnd();
 
     glBindTexture(GL_TEXTURE_2D, 0);
