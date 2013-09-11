@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <errno.h>
 
+const int		BLOCK_SIZE			= 32;
 const int		MAX_BUFFER_LENGTH	= 1024;
 const int		STREAM_WIDTH		= 800;
 const int		STREAM_HEIGHT		= 600;
@@ -17,13 +18,20 @@ const int		STREAM_COLOURCOUNT	= 3;
 const GLenum	STREAM_FORMAT		= GL_BGR;
 const int		STREAM_SIZE			= STREAM_WIDTH * STREAM_HEIGHT *
 									STREAM_COLOURCOUNT;
+const int BLOCK_COLUMNS	= STREAM_WIDTH/BLOCK_SIZE +
+			( STREAM_WIDTH%BLOCK_SIZE ? 1 : 0 );
+const int BLOCK_ROWS = STREAM_HEIGHT/BLOCK_SIZE +
+			( STREAM_HEIGHT%BLOCK_SIZE ? 1 : 0 );
 char g_BufferToSend[ STREAM_WIDTH*STREAM_HEIGHT*STREAM_COLOURCOUNT ];
 
 typedef struct __tagImagePacket
 {
+	int		BlockIndex;
 	int		Offset;
-	char	Data[ 1020 ];
+	char	Data[ 1016 ];
 }ImagePacket;
+
+const int PACKET_HEADER = sizeof( int ) * 2;
 
 RemoteDisplayElement::RemoteDisplayElement( )
 {
@@ -425,21 +433,44 @@ void RemoteDisplayElement::Render( )
 	}
 	else
 	{
+		printf( "Block: %d\n", ntohl( TmpPkt.BlockIndex ) );
 		printf( "Offset: %d\n", ntohl( TmpPkt.Offset ) );
+		int X = 0;
+		int Y = 0;
 /*		printf( "Data:\n" );
 		for( int i = 0; i < NumBytes-4; ++i )
 		{
 			printf( "%02X  ", TmpPkt.Data[ i ] );
 		}
 		printf( "\n" );*/
+		bool FoundBlock = false;
+		for( ; Y < BLOCK_ROWS; ++Y )
+		{
+			for( ; X < BLOCK_COLUMNS; ++X )
+			{
+				if( ( X+(Y*BLOCK_ROWS) ) == ntohl( TmpPkt.BlockIndex ) )
+				{
+					printf( "Row: %d | Column: %d\n", Y, X );
+					FoundBlock = true;
+					break;
+				}
+			}
+			if( FoundBlock )
+			{
+				printf( "Found block\n" );
+				break;
+			}
+		}
 
 		static unsigned int Colour = 0xFF00000FF;
 		glBindTexture( GL_TEXTURE_2D, m_TextureID );
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, STREAM_WIDTH, STREAM_HEIGHT,
+		glTexSubImage2D( GL_TEXTURE_2D, 0, X*BLOCK_SIZE, Y*BLOCK_SIZE,
+			BLOCK_SIZE, BLOCK_SIZE,
 			STREAM_FORMAT, GL_UNSIGNED_BYTE, 0 );
 		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glBufferData( GL_PIXEL_UNPACK_BUFFER_ARB, STREAM_SIZE, 0,
+		glBufferData( GL_PIXEL_UNPACK_BUFFER_ARB,
+			BLOCK_SIZE*BLOCK_SIZE*STREAM_COLOURCOUNT, 0,
 			GL_STREAM_DRAW_ARB );
 		GLubyte *pImagePointer = ( GLubyte * )glMapBuffer(
 			GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
@@ -448,7 +479,7 @@ void RemoteDisplayElement::Render( )
 			UpdateImage( pImagePointer, 1020, ntohl( TmpPkt.Offset ),
 				TmpPkt.Data );*/
 			memcpy( pImagePointer+ntohl( TmpPkt.Offset ), TmpPkt.Data,
-				NumBytes-4 );
+				NumBytes-PACKET_HEADER );
 			/*memcpy( pImagePointer, g_BufferToSend, STREAM_WIDTH*STREAM_HEIGHT*
 				STREAM_COLOURCOUNT );*/
 		
