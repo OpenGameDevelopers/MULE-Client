@@ -47,7 +47,7 @@ extern PFNGLUNMAPBUFFERARBPROC			__glUnmapBuffer;
 }
 #endif
 
-bool InitGLExtensions( );
+bool InitGLExtensions( const int p_Major, const int p_Minor );
 
 #endif
 

@@ -149,7 +149,7 @@ int Pane::Initialise( )
 	XSendEvent( m_pDisplay, DefaultRootWindow( m_pDisplay ), False,
 		SubstructureNotifyMask, &Event );*/
 
-	if( InitGLExtensions( ) )
+	if( InitGLExtensions( m_GLVersion[ 0 ], m_GLVersion [ 1 ] ) )
 	{
 		std::cout << "Failed to initialise GL extensions" << std::endl;
 		return 0;

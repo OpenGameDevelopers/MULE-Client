@@ -406,7 +406,7 @@ void RemoteDisplayElement::Render( )
 	if( ( NumBytes = recvfrom( m_Socket, &TmpPkt, MAX_BUFFER_LENGTH, 0,
 		( struct sockaddr * )&RemoteAddress, &AddressLength ) ) == -1 )
 	{
-		printf( "Error receiving from socket\n" );
+//		printf( "Error receiving from socket\n" );
 		return;
 	}
 	else
@@ -458,6 +458,5 @@ void RemoteDisplayElement::Render( )
     glEnd();
 
     glBindTexture(GL_TEXTURE_2D, 0);
-
 }
 
