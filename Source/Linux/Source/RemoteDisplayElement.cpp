@@ -26,12 +26,12 @@ char g_BufferToSend[ STREAM_WIDTH*STREAM_HEIGHT*STREAM_COLOURCOUNT ];
 
 typedef struct __tagImagePacket
 {
-	int		BlockIndex;
+//	int		BlockIndex;
 	int		Offset;
-	char	Data[ 1016 ];
+	char	Data[ 1020 ];
 }ImagePacket;
 
-const int PACKET_HEADER = sizeof( int ) * 2;
+const int PACKET_HEADER = sizeof( int );// * 2;
 
 RemoteDisplayElement::RemoteDisplayElement( )
 {
@@ -90,103 +90,8 @@ int RemoteDisplayElement::Initialise( )
 	glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
 
 	// Initialise sockets
-/*	int Error;
-	struct addrinfo ClientHints, *pServerInfo, *pAddrItr;
-
-	memset( &ClientHints, 0, sizeof( ClientHints ) );
-	ClientHints.ai_family	= AF_UNSPEC;
-	ClientHints.ai_socktype	= SOCK_DGRAM;
-	ClientHints.ai_flags	= AI_PASSIVE;
-
-	if( ( Error = getaddrinfo( NULL, "5093", &ClientHints, &pServerInfo ) ) !=
-		0 )
-	{
-		printf( "Failed to get address information: %s\n",
-			gai_strerror( Error ) );
-		return 0;
-	}
-
-	for( pAddrItr = pServerInfo; pAddrItr != NULL;
-		pAddrItr = pAddrItr->ai_next )
-	{
-		if( ( m_Socket = socket( pAddrItr->ai_family, pAddrItr->ai_socktype,
-			pAddrItr->ai_protocol ) ) == -1 )
-		{
-			printf( "Failed to create socket\n" );
-			continue;
-		}
-
-		if( ( bind( m_Socket, pAddrItr->ai_addr, pAddrItr->ai_addrlen ) ) ==
-			-1 )
-		{
-			close( m_Socket );
-			printf( "Failed to bind socket\n" );
-			return 0;
-		}
-
-		break;
-	}
-
-	if( pAddrItr == NULL )
-	{
-		freeaddrinfo( pServerInfo );
-		printf( "Failed to obtain a valid address\n" );
-		return 0;
-	}
-
-	int NonBlock = 1;
-	if( fcntl( m_Socket, F_SETFL, O_NONBLOCK, NonBlock ) == -1 )
-	{
-		printf( "Failed to set non-blocking socket\n" );
-	}
-
-	freeaddrinfo( pServerInfo );
-
-
-	if( ( Error = getaddrinfo( NULL, "5092", &ClientHints, &pServerInfo ) ) !=
-		0 )
-	{
-		printf( "Failed to get address information: %s\n",
-			gai_strerror( Error ) );
-		return 0;
-	}
-
-	for( pAddrItr = pServerInfo; pAddrItr != NULL;
-		pAddrItr = pAddrItr->ai_next )
-	{
-		if( ( m_ServerSocket = socket( pAddrItr->ai_family,
-			pAddrItr->ai_socktype, pAddrItr->ai_protocol ) ) == -1 )
-		{
-			printf( "Failed to create socket\n" );
-			continue;
-		}
-
-		break;
-	}
-
-	if( pAddrItr == NULL )
-	{
-		freeaddrinfo( pServerInfo );
-		printf( "Failed to obtain a valid address\n" );
-		return 0;
-	}
-
-	if( fcntl( m_ServerSocket, F_SETFL, O_NONBLOCK, NonBlock ) == -1 )
-	{
-		printf( "Failed to set non-blocking socket\n" );
-	}
-
-	freeaddrinfo( pServerInfo );
-
-	m_SocketLength = sizeof( m_SocketAddress );
-	m_ServerLength = sizeof( m_ServerAddress );*/
-	struct addrinfo ClientHints;//, *pServerInfo, *pAddrItr;
+	struct addrinfo ClientHints;
 	int Error;
-	int NumBytes;
-	char Buffer[ MAX_BUFFER_LENGTH ];
-	struct sockaddr_storage RemoteAddress;
-	socklen_t AddressLength;
-	static bool datasent = false;
 
 	memset( &ClientHints, 0, sizeof( ClientHints ) );
 	ClientHints.ai_family	= AF_UNSPEC;
@@ -269,240 +174,51 @@ void RemoteDisplayElement::Destroy( )
 	}
 }
 
-// The image here should be updated via an offset into the image's data, really
-void UpdateImage( GLubyte *p_pPixels, int p_Size, const int p_Offset,
-	char *p_pData )
-{
-    static int Colour = 0;
-
-    if( !p_pPixels )
-	{
-        return;
-	}/*
-
-	int *pDataPtr = ( int * )p_pPixels;
-
-    for( int i = 0; i < STREAM_HEIGHT; ++i )
-    {
-        for( int j = 0; j < STREAM_WIDTH; ++j )
-        {
-            *pDataPtr = Colour;
-            ++pDataPtr;
-        }
-        Colour += 196;
-    }*/
-
-	memcpy( p_pPixels+p_Offset, p_pData, p_Size );
-
-    ++Colour;
-}
-
 void RemoteDisplayElement::Render( )
-{/*
-	// Get the backbuffer from the server (assuming just one for now)
-	int NumBytes;
-	char Buffer[ MAX_BUFFER_LENGTH ];
-	static bool datasent = false;
-
-	if( !datasent )
-	{
-		if( ( NumBytes = sendto( m_ServerSocket, "Hello", strlen( "Hello" ), 0,
-			( struct sockaddr * )&m_SocketAddress, m_SocketLength ) )
-				== -1 )
-		{
-			printf( "Failed to send data: %s\n", strerror( errno ) );
-			datasent = true;
-			return;
-		}
-	}
-
-	static int FrameData = 0;
-	printf( "Getting frame data...\n" );
-
-	if( ( NumBytes = recvfrom( m_ServerSocket, Buffer, MAX_BUFFER_LENGTH, 0,
-		( struct sockaddr * )&m_ServerAddress, &( m_ServerLength ) ) ) == -1 )
-	{
-		printf( "Error receiving from socket: %s\n", strerror( errno ) );
-		return;
-	}
-	else
-	{
-		printf( "Packet [%d bytes]:\n", NumBytes );
-		++FrameData;
-		printf( "Frame count: %d\n", FrameData );
-
-		glBindTexture( GL_TEXTURE_2D, m_TextureID );
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, STREAM_WIDTH, STREAM_HEIGHT,
-			STREAM_FORMAT, GL_UNSIGNED_BYTE, 0 );
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glBufferData( GL_PIXEL_UNPACK_BUFFER_ARB, STREAM_SIZE, 0,
-			GL_STREAM_DRAW_ARB );
-		GLubyte *pImagePointer = ( GLubyte * )glMapBuffer(
-			GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-
-		if( pImagePointer )
-		{
-			// The packet received should contain the ID of the image stream
-			// for the user as well as the offset to update (in pixels)
-			// followed by the image stream data to use (the packet's size
-			// minus the ID and position will be used to calculate the data
-			// size)
-			UpdateImage( pImagePointer, STREAM_SIZE );
-			glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
-		}
-
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
-	}
-
-	glPushMatrix();
-
-    glBindTexture(GL_TEXTURE_2D, m_TextureID );
-    glColor4f(1, 1, 1, 1);
-    glBegin(GL_QUADS);
-    glNormal3f(0, 0, 1);
-    glTexCoord2f(0.0f, 0.0f);   glVertex3f(-0.5f, -0.5f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f);   glVertex3f( 0.5f, -0.5f, 0.0f);
-    glTexCoord2f(1.0f, 1.0f);   glVertex3f( 0.5f,  0.5f, 0.0f);
-    glTexCoord2f(0.0f, 1.0f);   glVertex3f(-0.5f,  0.5f, 0.0f);
-    glEnd();
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-*/
-	// Get the backbuffer from the server (assuming just one for now)
-//	struct addrinfo ClientHints, *pServerInfo, *pAddrItr;
-	int Error;
-	int NumBytes;
-	char Buffer[ MAX_BUFFER_LENGTH ];
+{
+	// Send the image size, compression, and ID
+	IMAGE_DATA Packet;
+	int Compression = htonl( 100 );
+	int Width = htonl( STREAM_WIDTH );
+	int Height = htonl( STREAM_HEIGHT );
 	struct sockaddr_storage RemoteAddress;
 	socklen_t AddressLength;
-	static bool datasent = false;
-/*
-	memset( &ClientHints, 0, sizeof( ClientHints ) );
-	ClientHints.ai_family	= AF_UNSPEC;
-	ClientHints.ai_socktype	= SOCK_DGRAM;
-	ClientHints.ai_flags	= AI_PASSIVE;
+	Packet.ID = htonl( 1 );
+	memcpy( Packet.Data, &Width, sizeof( int ) );
+	memcpy( &( Packet.Data[ sizeof( int ) ] ), &Height, sizeof( int ) );
+	memcpy( &( Packet.Data[ sizeof( int )*2 ] ), &Compression, sizeof( int ) );
 
-	if( ( Error = getaddrinfo( NULL, "5092", &ClientHints, &pServerInfo ) ) !=
-		0 )
-	{
-		printf( "Failed to get address information: %s\n",
-			gai_strerror( Error ) );
-		return;
-	}
-
-	for( pAddrItr = pServerInfo; pAddrItr != NULL;
-		pAddrItr = pAddrItr->ai_next )
-	{
-		if( ( m_Socket = socket( pAddrItr->ai_family, pAddrItr->ai_socktype,
-			pAddrItr->ai_protocol ) ) == -1 )
+	sendto( m_Socket, &Packet, sizeof( Packet ), 0, pAddrItr->ai_addr,
+		pAddrItr->ai_addrlen );
+	
+	// The first packet from the server will describe how many packets are to
+	// be expected
+  recvfrom( m_Socket, &Packet, sizeof( Packet ), 0,
+		( struct sockaddr * )&RemoteAddress, &AddressLength ); 
+		unsigned long PacketCount = 0;
+		for( size_t i = 0; i < sizeof( unsigned long ); ++i )
 		{
-			printf( "Failed to create socket\n" );
-			continue;
+			PacketCount |= Packet.Data[ i ] << ( i*8 );
 		}
+		printf( "Packet count: %lu\n",  PacketCount  );
+	
+	// Loop
+	//   Wait for the server to send the metadata about the image (packet count)
+	//   Confirm the packet has been received, ignoring re-sent packets
+	// EndLoop
+	// Decompress the JPG and set the texture with the decompressed data
+	glPushMatrix( );
 
-		break;
-	}
-
-	if( pAddrItr == NULL )
-	{
-		freeaddrinfo( pServerInfo );
-		printf( "Failed to obtain a valid address\n" );
-		return;
-	}*/
-	if( !datasent )
-	{
-		if( ( NumBytes = sendto( m_Socket, "Hello", strlen( "Hello" ), 0,
-			pAddrItr->ai_addr, pAddrItr->ai_addrlen ) ) == -1 )
-		{
-			freeaddrinfo( pServerInfo );
-			printf( "Failed to send data\n" );
-			datasent = true;
-			return;
-		}
-	}
-
-//	printf( "Getting frame data...\n" );
-
-	ImagePacket TmpPkt;
-	if( ( NumBytes = recvfrom( m_Socket, &TmpPkt, MAX_BUFFER_LENGTH, 0,
-		( struct sockaddr * )&RemoteAddress, &AddressLength ) ) == -1 )
-	{
-//		printf( "Error receiving from socket\n" );
-		return;
-	}
-	else
-	{
-		printf( "Block: %d\n", ntohl( TmpPkt.BlockIndex ) );
-		printf( "Offset: %d\n", ntohl( TmpPkt.Offset ) );
-		int X = 0;
-		int Y = 0;
-/*		printf( "Data:\n" );
-		for( int i = 0; i < NumBytes-4; ++i )
-		{
-			printf( "%02X  ", TmpPkt.Data[ i ] );
-		}
-		printf( "\n" );*/
-		bool FoundBlock = false;
-		for( Y =  0; Y < BLOCK_ROWS; ++Y )
-		{
-			for( X = 0; X < BLOCK_COLUMNS; ++X )
-			{
-				printf( "Calculated position: %d\n",( X+( Y*BLOCK_COLUMNS ) ) );
-				printf( "Block index: %d\n", ntohl( TmpPkt.BlockIndex ) );
-				if( ( X+( Y*BLOCK_COLUMNS ) ) == ntohl( TmpPkt.BlockIndex ) )
-				{
-					printf( "Row: %d | Column: %d\n", Y, X );
-					FoundBlock = true;
-					break;
-				}
-			}
-			if( FoundBlock )
-			{
-				printf( "Found block\n" );
-				break;
-			}
-		}
-
-		static unsigned int Colour = 0xFF00000FF;
-		glBindTexture( GL_TEXTURE_2D, m_TextureID );
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glTexSubImage2D( GL_TEXTURE_2D, 0, X*BLOCK_SIZE, Y*BLOCK_SIZE,
-			BLOCK_SIZE, BLOCK_SIZE,
-			STREAM_FORMAT, GL_UNSIGNED_BYTE, 0 );
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, m_PBO );
-		glBufferData( GL_PIXEL_UNPACK_BUFFER_ARB,
-			BLOCK_SIZE*BLOCK_SIZE*STREAM_COLOURCOUNT, 0,
-			GL_STREAM_DRAW_ARB );
-		GLubyte *pImagePointer = ( GLubyte * )glMapBuffer(
-			GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-		if( pImagePointer )
-		{/*
-			UpdateImage( pImagePointer, 1020, ntohl( TmpPkt.Offset ),
-				TmpPkt.Data );*/
-			memcpy( pImagePointer+ntohl( TmpPkt.Offset ), TmpPkt.Data,
-				NumBytes-PACKET_HEADER );
-			/*memcpy( pImagePointer, g_BufferToSend, STREAM_WIDTH*STREAM_HEIGHT*
-				STREAM_COLOURCOUNT );*/
-		
-			glUnmapBuffer( GL_PIXEL_UNPACK_BUFFER_ARB );
-		}
-
-		glBindBuffer( GL_PIXEL_UNPACK_BUFFER_ARB, 0 );
-	}
-
-	glPushMatrix();
-
-    glBindTexture(GL_TEXTURE_2D, m_TextureID );
+    glBindTexture( GL_TEXTURE_2D, m_TextureID );
     glColor4f( 1.0f, 1.0f, 1.0f, 1.0f );
-    glBegin(GL_QUADS);
+    glBegin( GL_QUADS );
     glNormal3f(0, 0, 1);
-    glTexCoord2f(0.0f, 0.0f);   glVertex3f(-1.0f, -1.0f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f);   glVertex3f( 1.0f, -1.0f, 0.0f);
-    glTexCoord2f(1.0f, 1.0f);   glVertex3f( 1.0f,  1.0f, 0.0f);
-    glTexCoord2f(0.0f, 1.0f);   glVertex3f(-1.0f,  1.0f, 0.0f);
-    glEnd();
+    glTexCoord2f( 0.0f, 0.0f );   glVertex3f( -1.0f, -1.0f, 0.0f );
+    glTexCoord2f( 1.0f, 0.0f );   glVertex3f(  1.0f, -1.0f, 0.0f );
+    glTexCoord2f( 1.0f, 1.0f );   glVertex3f(  1.0f,  1.0f, 0.0f );
+    glTexCoord2f( 0.0f, 1.0f );   glVertex3f( -1.0f,  1.0f, 0.0f );
+    glEnd( );
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture( GL_TEXTURE_2D, 0 );
 }
 

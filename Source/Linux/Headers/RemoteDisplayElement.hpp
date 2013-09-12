@@ -9,6 +9,12 @@
 #include <netdb.h>
 #include <errno.h>
 
+typedef struct __tagIMAGE_DATA
+{
+	unsigned int	ID;
+	unsigned char	Data[ 1020 ];
+}IMAGE_DATA;
+
 class RemoteDisplayElement : public UIElement
 {
 public:
