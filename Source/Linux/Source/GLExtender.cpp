@@ -23,11 +23,11 @@ PFNGLMAPBUFFERARBPROC			__glMapBuffer			= NULL;
 PFNGLUNMAPBUFFERARBPROC			__glUnmapBuffer			= NULL;
 
 template < typename t_GLFunc >
-bool InitGLExtension( const char *p_pExtension, t_GLFunc p_Function )
+bool InitGLExtension( const char *p_pExtension, t_GLFunc *p_pFunction )
 {
 	bool Failed = false;
 
-	Failed = ( ( p_Function = ( t_GLFunc )glXGetProcAddressARB(
+	Failed = ( ( ( *p_pFunction ) = ( t_GLFunc )glXGetProcAddressARB(
 		( const GLubyte * ) p_pExtension ) ) == NULL );
 
 	if( Failed )
@@ -35,7 +35,7 @@ bool InitGLExtension( const char *p_pExtension, t_GLFunc p_Function )
 		std::cout << "Failed to bind " << p_pExtension << std::endl;
 		char tmpbuf[ 1024 ];
 		memset( tmpbuf, '\0', sizeof( tmpbuf ) );
-		sprintf( tmpbuf, "0x%p", p_Function );
+		sprintf( tmpbuf, "0x%p", ( *p_pFunction ) );
 		std::cout << "Function pointer: " << tmpbuf << std::endl;
 	}
 
@@ -82,7 +82,7 @@ bool InitGLExtensions( const int p_Major, const int p_Minor )
 
 			std::cout << "Binding OpenGL 1.1 core API functions" << Padding;
 
-			Ret = InitGLExtension( "glBindTexture", __glBindTexture );
+			Ret = InitGLExtension( "glBindTexture", &__glBindTexture );
 
 			if( ( !__glBindTexture ) )
 			{
@@ -114,14 +114,14 @@ bool InitGLExtensions( const int p_Major, const int p_Minor )
 
 		if( ( *Itr ).compare( "GL_ARB_framebuffer_object" ) == 0 )
 		{
-			Ret = InitGLExtension( "glBindFramebuffer", __glBindFramebuffer );
-			Ret = InitGLExtension( "glGenFramebuffers", __glGenFramebuffers );
+			Ret = InitGLExtension( "glBindFramebuffer", &__glBindFramebuffer );
+			Ret = InitGLExtension( "glGenFramebuffers", &__glGenFramebuffers );
 			Ret = InitGLExtension( "glGenRenderbuffers",
-				__glGenRenderbuffers );
+				&__glGenRenderbuffers );
 			Ret = InitGLExtension( "glDeleteFramebuffers",
-				__glDeleteFramebuffers );
+				&__glDeleteFramebuffers );
 			Ret = InitGLExtension( "glDeleteRenderbuffers",
-				__glDeleteRenderbuffers );
+				&__glDeleteRenderbuffers );
 
 			if( ( !__glBindFramebuffer ) || ( !__glGenFramebuffers ) ||
 				( !__glGenRenderbuffers ) ||
@@ -156,13 +156,13 @@ bool InitGLExtensions( const int p_Major, const int p_Minor )
 		}
 		else if( ( *Itr ).compare( "GL_ARB_vertex_buffer_object" ) == 0 )
 		{
-			Ret = InitGLExtension( "glBindBufferARB", __glBindBuffer );
-			Ret = InitGLExtension( "glBufferDataARB", __glBufferData );
-			Ret = InitGLExtension( "glBufferSubDataARB", __glBufferSubData );
-			Ret = InitGLExtension( "glDeleteBuffersARB", __glDeleteBuffers );
-			Ret = InitGLExtension( "glGenBuffersARB", __glGenBuffers );
-			Ret = InitGLExtension( "glMapBufferARB", __glMapBuffer );
-			Ret = InitGLExtension( "glUnmapBufferARB", __glUnmapBuffer );
+			Ret = InitGLExtension( "glBindBufferARB", &__glBindBuffer );
+			Ret = InitGLExtension( "glBufferDataARB", &__glBufferData );
+			Ret = InitGLExtension( "glBufferSubDataARB", &__glBufferSubData );
+			Ret = InitGLExtension( "glDeleteBuffersARB", &__glDeleteBuffers );
+			Ret = InitGLExtension( "glGenBuffersARB", &__glGenBuffers );
+			Ret = InitGLExtension( "glMapBufferARB", &__glMapBuffer );
+			Ret = InitGLExtension( "glUnmapBufferARB", &__glUnmapBuffer );
 		
 			if( ( !__glBindBuffer ) || ( !__glBufferData ) ||
 				( !__glBufferSubData ) || ( !__glDeleteBuffers ) ||

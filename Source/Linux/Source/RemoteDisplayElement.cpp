@@ -444,11 +444,13 @@ void RemoteDisplayElement::Render( )
 		}
 		printf( "\n" );*/
 		bool FoundBlock = false;
-		for( ; Y < BLOCK_ROWS; ++Y )
+		for( Y =  0; Y < BLOCK_ROWS; ++Y )
 		{
-			for( ; X < BLOCK_COLUMNS; ++X )
+			for( X = 0; X < BLOCK_COLUMNS; ++X )
 			{
-				if( ( X+(Y*BLOCK_ROWS) ) == ntohl( TmpPkt.BlockIndex ) )
+				printf( "Calculated position: %d\n",( X+( Y*BLOCK_COLUMNS ) ) );
+				printf( "Block index: %d\n", ntohl( TmpPkt.BlockIndex ) );
+				if( ( X+( Y*BLOCK_COLUMNS ) ) == ntohl( TmpPkt.BlockIndex ) )
 				{
 					printf( "Row: %d | Column: %d\n", Y, X );
 					FoundBlock = true;
