@@ -13,32 +13,32 @@ extern "C"
 
 extern PFNGLBINDBUFFERARBPROC			__glBindBuffer;
 extern PFNGLBINDTEXTUREEXTPROC			__glBindTexture;
-extern PFNGLBINDFRAMEBUFFERPROC			__glBindFrameBuffer;
+extern PFNGLBINDFRAMEBUFFERPROC			__glBindFramebuffer;
 extern PFNGLBUFFERDATAARBPROC			__glBufferData;
 extern PFNGLBUFFERSUBDATAARBPROC		__glBufferSubData;
 extern PFNGLGENBUFFERSARBPROC			__glGenBuffers;
-extern PFNGLGENFRAMEBUFFERSEXTPROC		__glGenFrameBuffers;
-extern PFNGLGENRENDERBUFFERSEXTPROC		__glGenRenderBuffers;
+extern PFNGLGENFRAMEBUFFERSEXTPROC		__glGenFramebuffers;
+extern PFNGLGENRENDERBUFFERSEXTPROC		__glGenRenderbuffers;
 extern PFNGLDELETEBUFFERSARBPROC		__glDeleteBuffers;
-extern PFNGLDELETEFRAMEBUFFERSPROC		__glDeleteFrameBuffers;
-extern PFNGLDELETERENDERBUFFERSPROC		__glDeleteRenderBuffers;
+extern PFNGLDELETEFRAMEBUFFERSPROC		__glDeleteFramebuffers;
+extern PFNGLDELETERENDERBUFFERSPROC		__glDeleteRenderbuffers;
 extern PFNGLMAPBUFFERARBPROC			__glMapBuffer;
 extern PFNGLUNMAPBUFFERARBPROC			__glUnmapBuffer;
 
 #define glBindBuffer		__glBindBuffer
 #define glBindTexture		__glBindTexture
-#define glBindFrameBuffer	__glBindFrameBuffer
+#define glBindFramebuffer	__glBindFramebuffer
 
 #define glBufferData		__glBufferData
 #define glBufferSubData		__glBufferSubData
 
 #define glGenBuffers		__glGenBuffers
-#define glGenFrameBuffers	__glGenFrameBuffers
-#define glGenRenderBuffers	__glGenRenderBuffers
+#define glGenFramebuffers	__glGenFramebuffers
+#define glGenRenderbuffers	__glGenRenderbuffers
 
 #define glDeleteBuffers			__glDeleteBuffers
-#define glDeleteFrameBuffers	__glDeleteFrameBuffers
-#define glDeleteRenderBuffers	__glDeleteRenderBuffers
+#define glDeleteFramebuffers	__glDeleteFramebuffers
+#define glDeleteRenderbuffers	__glDeleteRenderbuffers
 
 #define glMapBuffer		__glMapBuffer
 #define glUnmapBuffer	__glUnmapBuffer
@@ -47,7 +47,7 @@ extern PFNGLUNMAPBUFFERARBPROC			__glUnmapBuffer;
 }
 #endif
 
-bool InitGLExtensions( );
+bool InitGLExtensions( const int p_Major, const int p_Minor );
 
 #endif
 
