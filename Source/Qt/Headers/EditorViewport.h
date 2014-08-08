@@ -13,6 +13,7 @@ class QPaintEvent;
 class QResizeEvent;
 class QOpenGLShaderProgram;
 class QOpenGLFunctions;
+class QOpenGLFunctions_3_0;
 
 typedef enum __ViewportType
 {
@@ -37,7 +38,7 @@ public:
 	~EditorViewport( );
 
 	int Create( const ViewportType p_Type,
-		QOpenGLFunctions * const &p_GLFunctions );
+		QOpenGLFunctions_3_0 * const &p_GLFunctions );
 	int Resize( const int p_Width, const int p_Height );
 
 	int SetType( const ViewportType p_Type );
@@ -61,11 +62,16 @@ protected:
 	float						m_BlueClear;
 
 	GLuint					m_PositionAttribute;
-	GLuint					m_ColourAttribute;
-	GLuint					m_MatrixUniform;
+	GLuint					m_STAttribute;
+	GLuint					m_TextureSamplerUniform;
 	QOpenGLShaderProgram	*m_pProgram;
-	QOpenGLFunctions		*m_pGLFunctions;
+	QOpenGLFunctions_3_0	*m_pGLFunctions;
 	float					m_Zoom;
+	GLuint					m_TextureID;
+
+	GLuint					m_IndexBuffer;
+	GLuint					m_VertexBuffer;
+	GLuint					m_VertexArrayObject;
 
 	bool					m_Panning;
 	float					m_PanX;

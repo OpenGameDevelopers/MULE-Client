@@ -51,4 +51,7 @@ local.properties
 
 # Git version header #
 GitVersion.hpp
+GitVersion.h
+
+Source/Qt/Makefile*
 

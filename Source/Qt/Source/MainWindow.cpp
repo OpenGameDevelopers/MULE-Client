@@ -12,7 +12,7 @@
 #include <Utility.h>
 #include <EditorViewportManager.h>
 #include <EditorViewport.h>
-#include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_0>
 
 MainWindow::MainWindow( )
 {
@@ -34,7 +34,7 @@ int MainWindow::Initialise( )
 	m_pGLContext->create( );
 	m_pGLContext->makeCurrent( m_pOpenGLSurface );
 
-	m_pOpenGLFunctions = new QOpenGLFunctions( m_pGLContext );
+	m_pOpenGLFunctions = new QOpenGLFunctions_3_0( );// m_pGLContext );
 	m_pOpenGLFunctions->initializeOpenGLFunctions( );
 
 	if( m_pGLContext->isValid( ) == false )

@@ -8,29 +8,44 @@
 #include <QOpenGLShaderProgram>
 #include <QtGui/QMatrix4x4>
 #include <QOpenGLFunctions>
+#include <QOpenGLFunctions_3_0>
 #include <Utility.h>
+#include <jpeglib.h>
+
+#define BUFFER_OFFSET( offset ) ( ( char * )NULL + ( offset ) )
 
 static const char *pVertexShaderSource =
 {
-	"attribute highp vec4 a_Position;\n"
-	"attribute lowp vec4 a_Colour;\n"
-	"varying lowp vec4 f_Colour;\n"
-	"uniform highp mat4 u_Matrix;\n"
+	"#version 130\n"
+	"in vec2 a_Position;\n"
+	"out vec2 f_ST;\n"
 	"void main( )\n"
 	"{\n"
-	"	f_Colour = a_Colour;\n"
-	"	gl_Position = u_Matrix * a_Position;\n"
+	"	gl_Position = vec4( a_Position, 0.0, 1.0 );\n"
+
+	"	f_ST = a_Position * 0.5 + 0.5;\n"
 	"}\n"
 };
 
 static const char *pFragmentShaderSource =
 {
-	"varying lowp vec4 f_Colour;\n"
+	"#version 130\n"
+	"in vec2 f_ST;\n"
+	"out vec4 o_FragColour;\n"
+	"uniform sampler2D u_Texture;\n"
 	"void main( )\n"
 	"{\n"
-	"	gl_FragColor = f_Colour;\n"
+	"	o_FragColour = texture2D( u_Texture, f_ST );\n"
 	"}\n"
 };
+
+unsigned char *g_pJPEGImage;
+unsigned char *g_pJPEGImageDecompressed;
+unsigned char *g_pRAWImage;
+unsigned long g_JPEGBufferLength;
+struct jpeg_decompress_struct g_JpegDecompressInfo;
+
+const int CHANNEL_COUNT = 3;
 
 EditorViewport::EditorViewport( QWidget *p_pParent ) :
 	QWidget( p_pParent ),
@@ -48,14 +63,37 @@ EditorViewport::EditorViewport( QWidget *p_pParent ) :
 	m_StoredPanY( 0.0f ),
 	m_Scale( 1.0f )
 {
+	g_pRAWImage = nullptr;
+	g_pJPEGImage = nullptr;
+	g_pJPEGImageDecompressed = nullptr;
+	g_JPEGBufferLength = 0UL;
 }
 
 EditorViewport::~EditorViewport( )
 {
+	if( g_pRAWImage )
+	{
+		delete [ ] g_pRAWImage;
+		g_pRAWImage = nullptr;
+	}
+
+	jpeg_destroy_decompress( &g_JpegDecompressInfo );
+
+	if( g_pJPEGImageDecompressed )
+	{
+		delete [ ] g_pJPEGImageDecompressed;
+		g_pJPEGImageDecompressed = nullptr;
+	}
+
+	if( g_pJPEGImage )
+	{
+		delete [ ] g_pJPEGImage;
+		g_pJPEGImage = nullptr;
+	}
 }
 
 int EditorViewport::Create( const ViewportType p_Type,
-	QOpenGLFunctions * const &p_pGLFunctions )
+	QOpenGLFunctions_3_0 * const &p_pGLFunctions )
 {
 	m_pGLFunctions = p_pGLFunctions;
 	m_pFramebuffer = new QOpenGLFramebufferObject( size( ), GL_TEXTURE_2D );
@@ -69,10 +107,115 @@ int EditorViewport::Create( const ViewportType p_Type,
 		pFragmentShaderSource );
 	m_pProgram->link( );
 	m_PositionAttribute = m_pProgram->attributeLocation( "a_Position" );
-	m_ColourAttribute = m_pProgram->attributeLocation( "a_Colour" );
-	m_MatrixUniform = m_pProgram->uniformLocation( "u_Matrix" );
+	m_STAttribute = m_pProgram->attributeLocation( "a_ST" );
+	m_TextureSamplerUniform = m_pProgram->uniformLocation( "u_Texture" );
 
 	setMouseTracking( true );
+
+	g_pRAWImage = new unsigned char[ width( ) * height( ) * CHANNEL_COUNT ];
+
+	// Create the initial JPEG test image (a green image the same width and
+	// height as the viewport, and store it in memory)
+	for( int Row = 0; Row < height( ); ++Row )
+	{
+		for( int Col = 0; Col < width( ) * CHANNEL_COUNT; ++Col )
+		{
+			g_pRAWImage[ Col + ( Row * width( ) * CHANNEL_COUNT ) ] = 
+				( Row % 256 ) & 0xFF;
+		}
+	}
+
+	// Compress the image, then immediately decompress it
+	struct jpeg_compress_struct JpegCompressInfo;
+	struct jpeg_error_mgr		JpegError;
+	JpegCompressInfo.err = jpeg_std_error( &JpegError );
+	jpeg_create_compress( &JpegCompressInfo );
+	jpeg_mem_dest( &JpegCompressInfo, &g_pJPEGImage, &g_JPEGBufferLength );
+	JpegCompressInfo.image_width = width( );
+	JpegCompressInfo.image_height = height( );
+	JpegCompressInfo.input_components = CHANNEL_COUNT;
+	JpegCompressInfo.in_color_space = JCS_RGB;
+
+	jpeg_set_defaults( &JpegCompressInfo );
+	// By compressing to 10, banding in the test image should be visible
+	jpeg_set_quality( &JpegCompressInfo, 10, true );
+	jpeg_start_compress( &JpegCompressInfo, true );
+	JSAMPROW pRow;
+
+	while( JpegCompressInfo.next_scanline < JpegCompressInfo.image_height )
+	{
+		pRow = ( JSAMPROW )&g_pRAWImage[ JpegCompressInfo.next_scanline *
+			CHANNEL_COUNT * width( ) ];
+		jpeg_write_scanlines( &JpegCompressInfo, &pRow, 1 );
+	}
+
+	jpeg_finish_compress( &JpegCompressInfo );
+	jpeg_destroy_compress( &JpegCompressInfo );
+
+	g_JpegDecompressInfo.err = jpeg_std_error( &JpegError );
+	jpeg_create_decompress( &g_JpegDecompressInfo );
+	jpeg_mem_src( &g_JpegDecompressInfo, g_pJPEGImage, g_JPEGBufferLength );
+	if( jpeg_read_header( &g_JpegDecompressInfo, true ) != 1 )
+	{
+		return 1;
+	}
+
+	jpeg_start_decompress( &g_JpegDecompressInfo );
+
+	int JPEGWidth = g_JpegDecompressInfo.output_width;
+	int JPEGHeight = g_JpegDecompressInfo.output_height;
+	int JPEGPixelSize = g_JpegDecompressInfo.output_components;
+	int JPEGTotalSize = JPEGWidth * JPEGHeight * JPEGPixelSize;
+
+	g_pJPEGImageDecompressed = new unsigned char[ JPEGTotalSize ];
+
+	while( g_JpegDecompressInfo.output_scanline <
+		g_JpegDecompressInfo.output_height )
+	{
+		unsigned char *pBuffer[ 1 ];
+		pBuffer[ 0 ] = g_pJPEGImageDecompressed +
+			( g_JpegDecompressInfo.output_scanline ) *
+			JPEGWidth * JPEGPixelSize;
+		jpeg_read_scanlines( &g_JpegDecompressInfo, pBuffer, 1  );
+	}
+
+	jpeg_finish_decompress( &g_JpegDecompressInfo );
+
+	glGenTextures( 1, &m_TextureID );
+
+	glBindTexture( GL_TEXTURE_2D, m_TextureID );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, width( ), height( ), 0,
+		GL_RGB, GL_UNSIGNED_BYTE, ( GLvoid * )g_pJPEGImageDecompressed );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
+	m_pGLFunctions->glGenVertexArrays( 1, &m_VertexArrayObject );
+	m_pGLFunctions->glBindVertexArray( m_VertexArrayObject );
+
+	GLfloat VertexBufferData [ ] =
+	{
+		-1.0f, 1.0f,
+		-1.0f, -1.0f,
+		1.0f, 1.0f,
+		1.0f, -1.0f,
+	};
+
+	m_pGLFunctions->glGenBuffers( 1, &m_VertexBuffer );
+	m_pGLFunctions->glBindBuffer( GL_ARRAY_BUFFER, m_VertexBuffer );
+	m_pGLFunctions->glBufferData( GL_ARRAY_BUFFER, sizeof( VertexBufferData ),
+		VertexBufferData, GL_STATIC_DRAW );
+
+	m_pGLFunctions->glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, 0,
+		BUFFER_OFFSET( 0 ) );
+
+	m_pGLFunctions->glEnableVertexAttribArray( 0 );
+
+	m_pGLFunctions->glBindVertexArray( 0 );
+
+	m_pGLFunctions->glBindBuffer( GL_ARRAY_BUFFER, 0 );
 
 	return 0;
 }
@@ -136,6 +279,7 @@ void EditorViewport::Deactivate( )
 void EditorViewport::Render( )
 {
 	glViewport( 0, 0, width( ), height( ) );
+
 	// The following should be replaced with rendering the JPEG image received
 	// from the server
 	glClearColor( m_RedClear, m_GreenClear, m_BlueClear, 1.0f );
@@ -143,77 +287,22 @@ void EditorViewport::Render( )
 
 	m_pProgram->bind( );
 
-	RecreateProjectionMatrix( );
+	glActiveTexture( GL_TEXTURE0 );
 
-	m_pProgram->setUniformValue( m_MatrixUniform, m_ProjectionMatrix );
+	glBindTexture( GL_TEXTURE_2D, m_TextureID );
 
-	GLfloat Vertices[ ] =
-	{
-		-1.0f, 1.0f,
-		-1.0f, -1.0f,
-		1.0f, 1.0f,
-		1.0f, -1.0f
-	};
+	m_pProgram->setUniformValue( m_TextureSamplerUniform, 0 );
 
-	GLfloat Colours[ ] =
-	{
-		1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f
-	};
+	m_pGLFunctions->glBindVertexArray( m_VertexArrayObject );
 
-	m_pGLFunctions->glVertexAttribPointer( m_PositionAttribute, 2, GL_FLOAT,
-		GL_FALSE, 0, Vertices );
-	m_pGLFunctions->glVertexAttribPointer( m_ColourAttribute, 3, GL_FLOAT,
-		GL_FALSE, 0, Colours );
-	
-	m_pGLFunctions->glEnableVertexAttribArray( 0 );
-	m_pGLFunctions->glEnableVertexAttribArray( 1 );
+	m_pGLFunctions->glDrawArrays( GL_TRIANGLE_STRIP, 0, 8 );
 
-	glDrawArrays( GL_LINES, 0, 4 );
-
-	m_pGLFunctions->glDisableVertexAttribArray( 1 );
-	m_pGLFunctions->glDisableVertexAttribArray( 0 );
+	m_pGLFunctions->glBindVertexArray( 0 );
 
 	m_pProgram->release( );
-}
 
-void EditorViewport::RecreateProjectionMatrix( )
-{
-	m_ProjectionMatrix.setToIdentity( );
-	if( m_Type == ViewportPerspective )
-	{
-		m_ProjectionMatrix.perspective( 60,
-			static_cast< float >( size( ).width( ) ) /
-				static_cast< float >( size( ).height( ) ), 0.1f, 100.0f );
+	glBindTexture( GL_TEXTURE_2D, 0 );
 
-		m_ProjectionMatrix.translate( m_PanX, m_PanY, m_Zoom );
-	}
-	else if( m_Type == ViewportOrthographic )
-	{
-		if( size( ).width( ) > size( ).height( ) )
-		{
-			float Factor = static_cast< float >( size( ).width( ) ) /
-				static_cast< float >( size( ).height( ) );
-			m_ProjectionMatrix.ortho( -Factor, Factor, -1.0f, 1.0f,
-				0.01f, 10000.0f );
-		}
-		else if( size( ).width( ) == size( ).height( ) )
-		{
-			m_ProjectionMatrix.ortho( -1.0f, 1.0f, -1.0f, 1.0f,
-				0.01f, 10000.0f );
-		}
-		else
-		{
-			float Factor = static_cast< float >( size( ).height( ) ) /
-				static_cast< float >( size( ).width( ) );
-			m_ProjectionMatrix.ortho( -1.0f, 1.0f, -Factor, Factor,
-				0.001f, 10000.0f );
-		}
-		m_ProjectionMatrix.scale( m_Scale );
-		m_ProjectionMatrix.translate( m_PanX, m_PanY, -1.0f );
-	}
 }
 
 void EditorViewport::paintEvent( QPaintEvent *p_pPaintEvent )

@@ -5,6 +5,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET_NAME = MULE
 
 QMAKE_CXXFLAGS += -std=c++11
+LIBS+=-ljpeg
 
 Release {
 TARGET = ../../Bin/$${TARGET_NAME}
@@ -29,7 +30,6 @@ SOURCES +=\
     Source/Main.cpp \
 	Source/EditorViewport.cpp \
 	Source/EditorViewportManager.cpp \
-	Source/OrthographicViewport.cpp \
 	Source/Grid.cpp
 
 INCLUDEPATH += ./Headers
@@ -39,7 +39,6 @@ HEADERS  +=\
 	Headers/EditorViewport.h \
 	Headers/Utility.h \
 	Headers/EditorViewportManager.h \
-	Headers/OrthographicViewport.h \
 	Headers/Grid.h
 
 versioninfo.target = Headers/GitVersion.h

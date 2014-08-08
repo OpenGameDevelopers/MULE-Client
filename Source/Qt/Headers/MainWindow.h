@@ -7,7 +7,7 @@ class QOpenGLContext;
 class QOffscreenSurface;
 class QSplitter;
 class EditorViewportManager;
-class QOpenGLFunctions;
+class QOpenGLFunctions_3_0;
 class QVBoxLayout;
 class QWidget;
 
@@ -30,7 +30,7 @@ private:
     QAction					*m_pQuitAction;
 	QOpenGLContext			*m_pGLContext;
 	QOffscreenSurface		*m_pOpenGLSurface;
-	QOpenGLFunctions		*m_pOpenGLFunctions;
+	QOpenGLFunctions_3_0		*m_pOpenGLFunctions;
 	QVBoxLayout				*m_pLayout;
 	QSplitter				*m_pSplitter;
 	QWidget					*m_pViewportContainer;
