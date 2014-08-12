@@ -62,14 +62,12 @@ protected:
 	float						m_BlueClear;
 
 	GLuint					m_PositionAttribute;
-	GLuint					m_STAttribute;
 	GLuint					m_TextureSamplerUniform;
 	QOpenGLShaderProgram	*m_pProgram;
 	QOpenGLFunctions_3_0	*m_pGLFunctions;
 	float					m_Zoom;
 	GLuint					m_TextureID;
 
-	GLuint					m_IndexBuffer;
 	GLuint					m_VertexBuffer;
 	GLuint					m_VertexArrayObject;
 
@@ -84,7 +82,8 @@ protected:
 	QMatrix4x4				m_ProjectionMatrix;
 	QMatrix4x4				m_ViewMatrix;
 
-	void RecreateProjectionMatrix( );
+	int	m_Socket;
+
 	void paintEvent( QPaintEvent *p_pPaintEvent );
 	void resizeEvent( QResizeEvent *p_pResizeEvent );
 	virtual void wheelEvent( QWheelEvent *p_pWheelEvent );

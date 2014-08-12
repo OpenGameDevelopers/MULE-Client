@@ -11,6 +11,14 @@
 #include <QOpenGLFunctions_3_0>
 #include <Utility.h>
 #include <jpeglib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <cstdio>
 
 #define BUFFER_OFFSET( offset ) ( ( char * )NULL + ( offset ) )
 
@@ -46,6 +54,27 @@ unsigned long g_JPEGBufferLength;
 struct jpeg_decompress_struct g_JpegDecompressInfo;
 
 const int CHANNEL_COUNT = 3;
+
+void *GetINetAddr( struct sockaddr *p_Addr )
+{
+	if( p_Addr->sa_family == AF_INET )
+	{
+		return &( ( ( struct sockaddr_in * )p_Addr )->sin_addr );
+	}
+
+	return &( ( ( struct sockaddr_in6 * )p_Addr )->sin6_addr );
+}
+
+uint64_t htonll( uint64_t p_Host )
+{
+	return ( ( ( uint64_t ) htonl( p_Host ) << 32 ) + htonl( p_Host >> 32 ) );
+}
+
+uint64_t ntohll( uint64_t p_Network )
+{
+	return ( ( ( uint64_t ) ntohl( p_Network ) << 32 ) +
+		ntohl( p_Network >> 32 ) );
+}
 
 EditorViewport::EditorViewport( QWidget *p_pParent ) :
 	QWidget( p_pParent ),
@@ -107,7 +136,6 @@ int EditorViewport::Create( const ViewportType p_Type,
 		pFragmentShaderSource );
 	m_pProgram->link( );
 	m_PositionAttribute = m_pProgram->attributeLocation( "a_Position" );
-	m_STAttribute = m_pProgram->attributeLocation( "a_ST" );
 	m_TextureSamplerUniform = m_pProgram->uniformLocation( "u_Texture" );
 
 	setMouseTracking( true );
@@ -216,6 +244,61 @@ int EditorViewport::Create( const ViewportType p_Type,
 	m_pGLFunctions->glBindVertexArray( 0 );
 
 	m_pGLFunctions->glBindBuffer( GL_ARRAY_BUFFER, 0 );
+
+	// Create the socket for this view (one socket for the entire program would
+	// make more sense...)
+	struct addrinfo ConnectHints, *pServerInfo, *pAddrItr;
+
+	memset( &ConnectHints, 0, sizeof( ConnectHints ) );
+
+	ConnectHints.ai_family		= AF_UNSPEC;
+	ConnectHints.ai_protocol	= IPPROTO_TCP;
+	ConnectHints.ai_socktype	= SOCK_STREAM;
+
+	int Error;
+
+	if( ( Error = getaddrinfo( "192.168.10.117", "5092", &ConnectHints,
+		&pServerInfo ) ) != 0 ) 
+	{
+		printf( "Failed to get address info for the server\n" );
+
+		return 1;
+	}
+
+	for( struct addrinfo *pAddrItr = pServerInfo; pAddrItr != NULL;
+		pAddrItr = pAddrItr->ai_next )
+	{
+		if( ( m_Socket = socket( pAddrItr->ai_family,
+			pAddrItr->ai_socktype, pAddrItr->ai_protocol ) ) == -1 )
+		{
+			printf( "Failed to get socket\n" );
+			continue;
+		}
+		if( ::connect( m_Socket, pAddrItr->ai_addr, pAddrItr->ai_addrlen ) ==
+			-1 )
+		{
+			::close( m_Socket );
+			printf( "Failed to connect to server\n" );
+
+			continue;
+		}
+
+		sleep( 3 );
+		break;
+	}
+
+	freeaddrinfo( pServerInfo );
+
+	if( pAddrItr == NULL )
+	{
+		printf( "Failed to create socket and connect to server\n" );
+		return 1;
+	}
+
+	if( m_Socket != -1 )
+	{
+		::close( m_Socket );
+	}
 
 	return 0;
 }
