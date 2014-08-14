@@ -285,6 +285,7 @@ int EditorViewport::Create( const ViewportType p_Type,
 			-1 )
 		{
 			::close( m_Socket );
+			m_Socket = -1;
 			printf( "Failed to connect to server\n" );
 
 			continue;
@@ -298,7 +299,6 @@ int EditorViewport::Create( const ViewportType p_Type,
 	if( pAddrItr == NULL )
 	{
 		printf( "Failed to create socket and connect to server\n" );
-		return 1;
 	}
 
 	// Request a view ID and tell the server about the screen size
@@ -463,9 +463,9 @@ void EditorViewport::resizeEvent( QResizeEvent *p_pResizeEvent )
 		Layout.ViewID = htonl( m_ViewID );
 		memcpy( ScreenSize.Data, &Layout, sizeof( Layout ) );
 		send( m_Socket, &ScreenSize, sizeof( ScreenSize ), 0 );
-	}
 
-	printf( "View ID: %d\n", m_ViewID );
+		printf( "View ID: %d\n", m_ViewID );
+	}
 }
 
 void EditorViewport::wheelEvent( QWheelEvent *p_pWheelEvent )
