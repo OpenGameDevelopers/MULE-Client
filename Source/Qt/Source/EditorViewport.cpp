@@ -84,6 +84,7 @@ EditorViewport::EditorViewport( QWidget *p_pParent ) :
 	m_RedClear( 0.13f ),
 	m_GreenClear( 0.0f ),
 	m_BlueClear( 0.13f ),
+	m_ViewID( 0 ),
 	m_Zoom( -2.0f ),
 	m_Panning( false ),
 	m_PanX( 0.0f ),
@@ -100,6 +101,12 @@ EditorViewport::EditorViewport( QWidget *p_pParent ) :
 
 EditorViewport::~EditorViewport( )
 {
+
+	if( m_Socket != -1 )
+	{
+		::close( m_Socket );
+	}
+
 	if( g_pRAWImage )
 	{
 		delete [ ] g_pRAWImage;
@@ -283,7 +290,6 @@ int EditorViewport::Create( const ViewportType p_Type,
 			continue;
 		}
 
-		sleep( 3 );
 		break;
 	}
 
@@ -295,9 +301,39 @@ int EditorViewport::Create( const ViewportType p_Type,
 		return 1;
 	}
 
+	// Request a view ID and tell the server about the screen size
 	if( m_Socket != -1 )
 	{
-		::close( m_Socket );
+		DATA_PACKET IDRequest;
+		IDRequest.ID = htonl( 2 );
+		send( m_Socket, &IDRequest, sizeof( IDRequest ), 0 );
+
+		DATA_PACKET ViewID;
+		// Wait to hear back
+		if( recv( m_Socket, &ViewID, sizeof( ViewID ), 0 ) == -1 )
+		{
+			return 1;
+		}
+
+		if( ntohl( ViewID.ID ) != 0 )
+		{
+			return 1;
+		}
+
+		int ID = ViewID.Data[ 0 ] | ViewID.Data[ 1 ] << 8 |
+			ViewID.Data[ 2 ] << 16 | ViewID.Data[ 3 ] << 24;
+
+		m_ViewID = ntohl( ID );
+
+		DATA_PACKET ScreenSize;
+		ScreenSize.ID = htonl( 1 );
+		IMAGE_LAYOUT Layout;
+		Layout.Width = htonl( width( ) );
+		Layout.Height = htonl( height( ) );
+		Layout.Compression = htonl( 40 );
+		Layout.ViewID = htonl( m_ViewID );
+		memcpy( ScreenSize.Data, &Layout, sizeof( Layout ) );
+		send( m_Socket, &ScreenSize, sizeof( ScreenSize ), 0 );
 	}
 
 	return 0;
@@ -415,6 +451,21 @@ void EditorViewport::resizeEvent( QResizeEvent *p_pResizeEvent )
 	m_pFramebuffer->release( );
 	SafeDelete( m_pFramebuffer );
 	m_pFramebuffer = new QOpenGLFramebufferObject( size( ), GL_TEXTURE_2D );
+	// Update the server of the new size
+	if( m_Socket != -1 )
+	{
+		DATA_PACKET ScreenSize;
+		ScreenSize.ID = htonl( 1 );
+		IMAGE_LAYOUT Layout;
+		Layout.Width = htonl( width( ) );
+		Layout.Height = htonl( height( ) );
+		Layout.Compression = htonl( 40 );
+		Layout.ViewID = htonl( m_ViewID );
+		memcpy( ScreenSize.Data, &Layout, sizeof( Layout ) );
+		send( m_Socket, &ScreenSize, sizeof( ScreenSize ), 0 );
+	}
+
+	printf( "View ID: %d\n", m_ViewID );
 }
 
 void EditorViewport::wheelEvent( QWheelEvent *p_pWheelEvent )

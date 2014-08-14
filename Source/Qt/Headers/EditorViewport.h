@@ -29,6 +29,20 @@ typedef enum __ViewportSide
 	ViewportFreeMoving
 }ViewportSide;
 
+typedef struct __tagDATA_PACKET
+{
+	unsigned int	ID;
+	unsigned char	Data[ 1020 ];
+}DATA_PACKET;
+
+typedef struct __tagIMAGE_LAYOUT
+{
+	int	Width;
+	int	Height;
+	int	Compression;
+	int	ViewID;
+}IMAGE_LAYOUT;
+
 class EditorViewport : public QWidget
 {
 	Q_OBJECT
@@ -60,6 +74,7 @@ protected:
 	float						m_RedClear;
 	float						m_GreenClear;
 	float						m_BlueClear;
+	int							m_ViewID;
 
 	GLuint					m_PositionAttribute;
 	GLuint					m_TextureSamplerUniform;
