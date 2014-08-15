@@ -404,6 +404,119 @@ void EditorViewport::Render( )
 	glClearColor( m_RedClear, m_GreenClear, m_BlueClear, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT );
 
+	// Get the JPEG data
+	DATA_PACKET Data;
+	Data.ID = htonl( 3 );
+	if( send( m_Socket, &Data, sizeof( Data ), 0 ) == -1 )
+	{
+		return;
+	}
+	if( recv( m_Socket, &Data, sizeof( Data ), 0 ) == -1 )
+	{
+		return;
+	}
+
+	if( Data.ID != ntohl( 1 ) )
+	{
+		return;
+	}
+
+	unsigned long PacketCount;
+	unsigned long BufferSize;
+
+	memcpy( &PacketCount, Data.Data, sizeof( unsigned long ) );
+	memcpy( &BufferSize, Data.Data + sizeof( unsigned long ),
+		sizeof( unsigned long ) );
+
+	PacketCount = ntohll( PacketCount );
+	BufferSize = ntohll( BufferSize );
+	printf( "Packet Count: %llu\n", PacketCount );
+	printf( "Buffer Size: %llu\n", BufferSize );
+
+	unsigned char *pCompressedImage = new unsigned char[ BufferSize ];
+
+	// Pretend to read the incoming data
+	for( unsigned long i = 0; i < PacketCount; ++i )
+	{
+		recv( m_Socket, &Data, sizeof( Data ), 0 );
+
+		unsigned int ID = ntohl( Data.ID );
+
+		IMAGE_DATA_STREAM ImageData;
+		memcpy( &ImageData, Data.Data, sizeof( Data.Data ) );
+		ImageData.Offset = ntohl( ImageData.Offset );
+
+		if( ID == 3 )
+		{
+			memcpy( pCompressedImage + ImageData.Offset, ImageData.Data,
+				sizeof( ImageData.Data ) );
+		}
+		else if( ID == 2 )
+		{
+			// The offset becomes the amount of bytes to copy
+			memcpy( pCompressedImage, ImageData.Data, ImageData.Offset );
+		}
+		else
+		{
+			// error
+			printf( "ID: %d\n", ID );
+		}
+	}
+
+	FILE *pFile = fopen( "/tmp/compressed.jpg", "w" );
+
+	fwrite( pCompressedImage, 1, BufferSize, pFile );
+
+	fclose( pFile );
+
+
+	struct jpeg_decompress_struct JpegDecompress;
+	struct jpeg_error_mgr		JpegError;
+
+	JpegDecompress.err = jpeg_std_error( &JpegError );
+	jpeg_create_decompress( &JpegDecompress );
+	jpeg_mem_src( &JpegDecompress, pCompressedImage, BufferSize );
+
+	if( jpeg_read_header( &JpegDecompress, true ) != 1 )
+	{
+		printf( "Failed to read JPEG header\n" );
+		return;
+	}
+
+	jpeg_start_decompress( &JpegDecompress );
+
+	int JPEGWidth = JpegDecompress.output_width;
+	int JPEGHeight = JpegDecompress.output_height;
+	int JPEGPixelSize = JpegDecompress.output_components;
+	int JPEGTotalSize = JPEGWidth * JPEGHeight * JPEGPixelSize;
+	printf( "Total size: %d\n", JPEGTotalSize );
+	unsigned char *pDecompressedImage = new unsigned char[ JPEGTotalSize ];
+
+	while( JpegDecompress.output_scanline < JpegDecompress.output_height )
+	{
+		unsigned char *pBuffer[ 1 ];
+		pBuffer[ 0 ] = pDecompressedImage +
+			( JpegDecompress.output_scanline ) * JPEGWidth * JPEGPixelSize;
+		jpeg_read_scanlines( &JpegDecompress, pBuffer, 1 );
+	}
+
+	jpeg_finish_decompress( &JpegDecompress );
+
+	delete [ ] pCompressedImage;
+
+	glActiveTexture( GL_TEXTURE0 );
+	glBindTexture( GL_TEXTURE_2D, m_TextureID );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width( ), height( ), GL_RGB,
+		GL_UNSIGNED_BYTE, ( GLvoid * )pDecompressedImage );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
+	delete [ ] pDecompressedImage;
+
+
 	m_pProgram->bind( );
 
 	glActiveTexture( GL_TEXTURE0 );
@@ -451,6 +564,20 @@ void EditorViewport::resizeEvent( QResizeEvent *p_pResizeEvent )
 	m_pFramebuffer->release( );
 	SafeDelete( m_pFramebuffer );
 	m_pFramebuffer = new QOpenGLFramebufferObject( size( ), GL_TEXTURE_2D );
+
+	glDeleteTextures( 1, &m_TextureID );
+
+	glGenTextures( 1, &m_TextureID );
+
+	glBindTexture( GL_TEXTURE_2D, m_TextureID );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, width( ), height( ), 0,
+		GL_RGB, GL_UNSIGNED_BYTE, ( GLvoid * )NULL );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
 	// Update the server of the new size
 	if( m_Socket != -1 )
 	{
@@ -463,9 +590,9 @@ void EditorViewport::resizeEvent( QResizeEvent *p_pResizeEvent )
 		Layout.ViewID = htonl( m_ViewID );
 		memcpy( ScreenSize.Data, &Layout, sizeof( Layout ) );
 		send( m_Socket, &ScreenSize, sizeof( ScreenSize ), 0 );
-
-		printf( "View ID: %d\n", m_ViewID );
 	}
+
+	printf( "Resize\n" );
 }
 
 void EditorViewport::wheelEvent( QWheelEvent *p_pWheelEvent )

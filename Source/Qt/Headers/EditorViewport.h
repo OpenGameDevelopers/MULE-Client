@@ -29,6 +29,7 @@ typedef enum __ViewportSide
 	ViewportFreeMoving
 }ViewportSide;
 
+#pragma pack( 1 )
 typedef struct __tagDATA_PACKET
 {
 	unsigned int	ID;
@@ -42,6 +43,15 @@ typedef struct __tagIMAGE_LAYOUT
 	int	Compression;
 	int	ViewID;
 }IMAGE_LAYOUT;
+
+typedef struct __tagIMAGE_DATA_STREAM
+{
+	int				Offset;
+	uint64_t		SequenceNumber;
+	unsigned char	Data[ 1008 ];
+}IMAGE_DATA_STREAM;
+
+#pragma pack( )
 
 class EditorViewport : public QWidget
 {
